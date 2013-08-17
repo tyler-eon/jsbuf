@@ -2,7 +2,8 @@ jsbuf
 =====
 
 Provides a simple JavaScript library for encoding and decoding messages
-using [Google's Protocol Buffers][protobuf].
+using [Google's Protocol Buffers][protobuf]. This is heavily influenced by
+[eprotoc][eprotoc], a protobuf generator for Erlang.
 
 ## Decoding
 
@@ -55,3 +56,5 @@ well as giving the developer accessed to named fields. Finally, these helper
 classes will have two other convenience functions: easy encoding and decoding.
 
 [protobuf]: https://developers.google.com/protocol-buffers/
+[eprotoc]: https://github.com/jeremyong/eprotoc
+
