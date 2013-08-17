@@ -23,8 +23,8 @@ var Protobuf = {
     },
 
     /**
-     * Returns [Varint, NewIdx], where Varint is varint field data and NewIdx is
-     * the index, in respect to the payload, where the pop completed.
+     * Returns a variable-sized integer from the payload, starting at the given
+     * index.
      */
     pop_varint: function(payload, idx, acc, itr) {
         if (!acc) { acc = 0; }
@@ -42,9 +42,65 @@ var Protobuf = {
         return [data + acc, idx + itr];
     },
 
+    /**
+     * Returns the next 4 bytes (32 bits) of data from the payload, starting at
+     * the given index.
+     */
+    pop_32bits: function(payload, idx) {
+        var data = 0;
+        var i = idx, max = payload.length, end = idx + 4;
+        for (; i < max && i < end; i++) {
+            var c = payload.charCodeAt(idx);
+            data += (c << (end - i - 1));
+        }
+        return [payload.charCodeAt(idx), i];
+    },
+
+    /**
+     * Returns the next 8 bytes (64 bits) of data from the payload, starting at
+     * the given index.
+     */
+    pop_64bits: function(payload, idx) {
+        var data = 0;
+        var i = idx, max = payload.length, end = idx + 8;
+        for (; i < max && i < end; i++) {
+            var c = payload.charCodeAt(idx);
+            data += (c << (end - i - 1));
+        }
+        return [payload.charCodeAt(idx), i];
+    },
+
+    /**
+     * Returns a variable-length string from the payload, starting at the given
+     * index. The first code point in the payload, at `idx`, should be a
+     * `varint` representing the number of bytes in the string.
+     */
+    pop_string: function(payload, idx) {
+        var res = Protobuf.pop_varint(payload, idx);
+        var i = res[1] + 1, max = payload.length;
+        var data = "";
+        for (var end = i + res[0]; i < max && i < end; i++)
+            data += payload[i];
+        return [data, i];
+    },
+
+    /** Returns the Protobuf function responsible for decoding the value of a
+     * given wire type.
+     *
+     * Each function takes in `(payload, index)` as its arguments, where
+     * `payload` is the binary string being decoded and `index` is the index
+     * within the payload to act as the starting point for the decode operation.
+     * 
+     * Each function returns `[Value, EndIndex]` where `Value` is the decoded
+     * value of a field and `EndIndex` is the last index inside `payload` that
+     * was used during the decoding operation.
+     */
     wire_decode: function(type) {
         switch (type) {
             case 0: return Protobuf.pop_varint;
+            case 1: return Protobuf.pop_64bits;
+            case 2: return Protobuf.pop_string;
+            case 5: return Protobuf.pop_32bits;
             default: return null;
         }
     }
