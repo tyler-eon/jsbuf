@@ -84,7 +84,8 @@ var Protobuf = {
         return [data, i];
     },
 
-    /** Returns the Protobuf function responsible for decoding the value of a
+    /**
+     * Returns the Protobuf function responsible for decoding the value of a
      * given wire type.
      *
      * Each function takes in `(payload, index)` as its arguments, where
@@ -101,7 +102,133 @@ var Protobuf = {
             case 1: return Protobuf.pop_64bits;
             case 2: return Protobuf.pop_string;
             case 5: return Protobuf.pop_32bits;
-            default: return null;
+        }
+    },
+
+    /**
+     * Encodes an array of field data tuples into a binary string. Each tuple
+     * must be of the form `[FieldNumber, Type, Value]`. The `Type` is not the
+     * wire type, but the declared type of a field in the proto message
+     * definition. For example, "int32" and "float" are both acceptable types. A
+     * collection of types and their associated wire types can be found at
+     * https://developers.google.com/protocol-buffers/docs/encoding#structure.
+     */
+    encode: function(fields) {
+        var bstr = "", field, header, res;
+        for (var i = 0, end = fields.length; i < end; i++) {
+            field = fields[i];
+            res = Protobuf.wire_encode(field[1]);
+            header = (field[0] << 3) | res[0];
+            bstr += String.fromCharCode(header) + res[1](field[2]);
+        }
+        return bstr;
+    },
+
+    encode_varint: function(i, acc) {
+        if (!acc) { acc = ""; }
+        if (i === true)
+            return acc + String.fromCharCode(1);
+        else if (i === false)
+            return acc + String.fromCharCode(0);
+        else if (i < 128)
+            return acc + String.fromCharCode(i);
+        var next = i >> 7;
+        var last = i - (next << 7);
+        var data = (1 << 7) + last;
+        return Protobuf.encode_varint(next, acc + String.fromCharCode(data));
+    },
+
+    encode_32bits: function(i) {
+        if (i < 0)
+            return Protobuf.encode_varint(i + (1 << 32));
+        return Protobuf.encode_varint(i);
+    },
+
+    encode_64bits: function(i) {
+        if (i < 0)
+            return Protobuf.encode_varint(i + (1 << 64));
+        return Protobuf.encode_varint(i);
+    },
+
+    encode_string: function(payload) {
+        return Protobuf.encode_varint(payload.length) + payload;
+    },
+
+    encode_int32: function(i) {
+        if (i < 0)
+            return Protobuf.encode_varint(i + (1 << 32));
+        return Protobuf.encode_varint(i);
+    },
+
+    encode_int64: function(i) {
+        if (i < 0)
+            return Protobuf.encode_varint(i + (1 << 64));
+        return Protobuf.encode_varint(i);
+    },
+
+    encode_uint32: function(i) { return Protobuf.encode_varint(i) },
+    encode_uint64: function(i) { return Protobuf.encode_varint(i) },
+
+    encode_sint32: function(i) {
+        return Protobuf.encode_varint((i << 1) ^ (i >> 31));
+    },
+
+    encode_sint64: function(i) {
+        return Protobuf.encode_varint((i << 1) ^ (i >> 63));
+    },
+
+    encode_bool: function(b) { return Protobuf.encode_varint(b); },
+    encode_enum: function(i) { return Protobuf.encode_varint(i); },
+
+    encode_bytes: function(b) { return Protobuf.encode_string(b); },
+
+    encode_float: function(f) {
+        // TODO
+        return Protobuf.encode_varint(f);
+    },
+    
+    /**
+     * Returns the Protobuf function responsible for encoding data of a
+     * given field type. Note: this is not the wire type, but the declared field
+     * type from the proto message definition.
+     *
+     * Each function takes in `(payload)` as its arguments, where `payload` is
+     * the data being decoded.
+     * 
+     * Each function returns `[WireType, BStr]`, a binary string representing the encoded
+     * field header and value.
+     */
+    wire_encode: function(type) {
+        return [
+            Protobuf.wire_type(type),
+            Protobuf["encode_" + type]
+        ];
+    },
+
+    wire_type: function(type) {
+        switch (type) {
+            case "int32":
+            case "int64":
+            case "uint32":
+            case "uint64":
+            case "sint32":
+            case "sint64":
+            case "bool":
+            case "enum":
+                return 0;
+            case "fixed64":
+            case "sfixed64":
+            case "double":
+                return 1;
+            case "message":
+            case "string":
+            case "bytes":
+            case "repeated":
+                return 2;
+            case "fixed32":
+            case "sfixed32":
+            case "float":
+                return 5;
         }
     }
 };
