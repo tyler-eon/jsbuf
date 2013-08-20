@@ -1,0 +1,12 @@
+{application, jsbuf,
+ [
+  {description, "Converts *.proto files into JavaScript helper files."},
+  {vsn, "1"},
+  {registered, []},
+  {applications, [
+                  kernel,
+                  stdlib
+                 ]},
+  {mod, { jsbuf_app, []}},
+  {env, []}
+ ]}.
