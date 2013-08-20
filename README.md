@@ -31,21 +31,24 @@ field number.
 ## Encoding
 
 Encode an array of field data to a binary string that can be sent over the wire
-using as a protocol buffer message. Field data must look like `[FieldNum,
-WireType, Value]`.
+using as a protocol buffer message. Field data must look like `[FieldNum, Type,
+Value]`.
 
-    var fields = [ [1, 0, 150], [2, 0, 96] ];
+    var fields = [ [1, "varint", 150], [2, "uint32", 96] ];
     Protobuf.encode(fields);
 
 The field data does *not* need to be sorted by field number prior to encoding.
 The protocol buffer format does not require it, since part of each field's
-"header" data you must include the field number.
+"header" data you must include the field number. It is also important to note
+that the `Type` element is a string representing the type of the field as
+declared in the proto message definition, and not the raw wire type. This is
+because the different declared field types have different encoding methods
+despite some of them sharing an underlying wire type.
 
 Using the `jsbuf` generator you can create a helper script that will encode
-JavaScript objects to binary strings based on your `*.proto` files. This means
-you can use named attributes to set data and the underlying helper class will
-make sure each field has the appropriate number and wire type set when
-generating the field data array to encode.
+JavaScript objects to binary strings based on your `*.proto` files. The biggest
+benefit to this is not having to manually determine field types as the helper
+objects will perform the appropriate mappings for encoding.
 
 ## Generator
 
