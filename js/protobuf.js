@@ -11,11 +11,11 @@ var Protobuf = {
         var fields = [];
         var i = 0, end = str.length;
         var cur, val, typ, num;
-        for (;i < end; i++) {
+        for (;i < end;) {
             cur = Protobuf.pop_varint(str, i);
             num = cur[0] >> 3;
             typ = cur[0] - (num << 3);
-            val = Protobuf.wire_decode(typ)(str, cur[1] + 1);
+            val = Protobuf.wire_decode(typ)(str, cur[1]);
             fields.push([num, typ, val[0]]);
             i = val[1];
         }
@@ -39,7 +39,7 @@ var Protobuf = {
                     data + acc,
                     itr + 1
                 );
-        return [data + acc, idx + itr];
+        return [data + acc, idx + itr + 1];
     },
 
     /**
@@ -77,10 +77,10 @@ var Protobuf = {
      */
     pop_string: function(payload, idx) {
         var res = Protobuf.pop_varint(payload, idx);
-        var i = res[1] + 1, max = payload.length;
+        var i = res[1], max = payload.length;
         var data = "";
         for (var end = i + res[0]; i < max && i < end; i++)
-            data += payload[i];
+            data += payload.charAt(i);
         return [data, i];
     },
 
@@ -91,7 +91,7 @@ var Protobuf = {
      * Each function takes in `(payload, index)` as its arguments, where
      * `payload` is the binary string being decoded and `index` is the index
      * within the payload to act as the starting point for the decode operation.
-     * 
+     *
      * Each function returns `[Value, EndIndex]` where `Value` is the decoded
      * value of a field and `EndIndex` is the last index inside `payload` that
      * was used during the decoding operation.
@@ -186,7 +186,7 @@ var Protobuf = {
         // TODO
         return Protobuf.encode_varint(f);
     },
-    
+
     /**
      * Returns the Protobuf function responsible for encoding data of a
      * given field type. Note: this is not the wire type, but the declared field
@@ -194,7 +194,7 @@ var Protobuf = {
      *
      * Each function takes in `(payload)` as its arguments, where `payload` is
      * the data being decoded.
-     * 
+     *
      * Each function returns `[WireType, BStr]`, a binary string representing the encoded
      * field header and value.
      */
