@@ -21,6 +21,24 @@ var Protobuf = {
         }
         return fields;
     },
+    
+    /**
+     * JavaScript stores all its numbers as 64 bit initally, 
+     * but as soon as you start using bitwise operators the interpreter converts the number to a 32 bit representation..
+     * borrowed from http://stackoverflow.com/questions/337355/javascript-bitwise-shift-of-long-long-number
+     * bitwise operation shim
+     */
+    lshift: function (num, bits) {
+        return num * Math.pow(2, bits);
+    },
+    /**
+     * reverse version of left shift, 
+     * shifting a number to the right is the same as dividing it by 2 to the power of shiftAmount
+     * from http://code.tutsplus.com/articles/understanding-bitwise-operators--active-11301
+     */
+    rshift: function (num, bits) {
+        return Math.floor(num / Math.pow(2, bits));
+    },
 
     /**
      * Returns a variable-sized integer from the payload, starting at the given
@@ -31,7 +49,8 @@ var Protobuf = {
         if (!itr) { itr = 0; }
         var head = payload.charCodeAt(idx + itr);
         var msb  = head & 128;
-        var data = (head & 127) << (itr * 7);
+        //var data = (head & 127) << (itr * 7);
+        var data = Protobuf.lshift(head & 127, itr * 7);
         if (msb == 128)
             return Protobuf.pop_varint(
                     payload,
@@ -132,9 +151,13 @@ var Protobuf = {
             return acc + String.fromCharCode(0);
         else if (i < 128)
             return acc + String.fromCharCode(i);
-        var next = i >> 7;
-        var last = i - (next << 7);
-        var data = (1 << 7) + last;
+        //var next = i >> 7;
+        var next = Protobuf.rshift(i, 7);
+        //var last = i - (next << 7);
+        var last = i - Protobuf.lshift(next, 7);
+        //var data = (1 << 7) + last;
+        var data = 128 + last;
+        
         return Protobuf.encode_varint(next, acc + String.fromCharCode(data));
     },
 
