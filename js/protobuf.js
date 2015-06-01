@@ -49,7 +49,6 @@ var Protobuf = {
         if (!itr) { itr = 0; }
         var head = payload.charCodeAt(idx + itr);
         var msb  = head & 128;
-        //var data = (head & 127) << (itr * 7);
         var data = Protobuf.lshift(head & 127, itr * 7);
         if (msb == 128)
             return Protobuf.pop_varint(
@@ -151,11 +150,8 @@ var Protobuf = {
             return acc + String.fromCharCode(0);
         else if (i < 128)
             return acc + String.fromCharCode(i);
-        //var next = i >> 7;
         var next = Protobuf.rshift(i, 7);
-        //var last = i - (next << 7);
         var last = i - Protobuf.lshift(next, 7);
-        //var data = (1 << 7) + last;
         var data = 128 + last;
         
         return Protobuf.encode_varint(next, acc + String.fromCharCode(data));
