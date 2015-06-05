@@ -132,12 +132,24 @@ var Protobuf = {
      * https://developers.google.com/protocol-buffers/docs/encoding#structure.
      */
     encode: function(fields) {
-        var bstr = "", field, header, res;
+       var bstr = "", field, header, res, header1, plus;
         for (var i = 0, end = fields.length; i < end; i++) {
             field = fields[i];
             res = Protobuf.wire_encode(field[1]);
             header = (field[0] << 3) | res[0];
-            bstr += String.fromCharCode(header) + res[1](field[2]);
+          
+            // when FieldNum >= 16 , header will be greater than 128, which will cause encoding problem
+            // add a second header here
+            header1 = Math.floor(field[0] / 16);
+          
+            if (header1 > 0) {
+                header = header - 128 * (header1 - 1);
+                plus = String.fromCharCode(header, header1) + res[1](field[2]);
+            } else {
+                plus = String.fromCharCode(header) + res[1](field[2]);
+            }
+            
+            bstr += plus;
         }
         return bstr;
     },
